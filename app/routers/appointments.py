@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..database import SessionLocal
@@ -15,22 +15,35 @@ def get_db():
         db.close()
 
 
+def _raise_business_error(exc: ValueError):
+    raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 # ✅ BOOK APPOINTMENT
 @router.post("/")
 def book_appointment(data: schemas.AppointmentCreate, db: Session = Depends(get_db)):
-    return crud.create_appointment(db, data)
+    try:
+        return crud.create_appointment(db, data)
+    except ValueError as exc:
+        _raise_business_error(exc)
 
 
 # ❌ CANCEL APPOINTMENT
 @router.patch("/{appointment_id}/cancel")
 def cancel_appointment(appointment_id: int, data: schemas.AppointmentCancel, db: Session = Depends(get_db)):
-    return crud.cancel_appointment(db, appointment_id, data.reason)
+    try:
+        return crud.cancel_appointment(db, appointment_id, data.reason)
+    except ValueError as exc:
+        _raise_business_error(exc)
 
 
 # 🔁 RESCHEDULE APPOINTMENT
 @router.patch("/{appointment_id}/reschedule")
 def reschedule_appointment(appointment_id: int, data: schemas.AppointmentReschedule, db: Session = Depends(get_db)):
-    return crud.reschedule_appointment(db, appointment_id, data.new_slot_time)
+    try:
+        return crud.reschedule_appointment(db, appointment_id, data.new_slot_time)
+    except ValueError as exc:
+        _raise_business_error(exc)
 
 
 # 🎯 BONUS: GET PATIENT APPOINTMENTS

@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -49,6 +49,25 @@ def test_create_appointment_success(db):
         doctor_id=doctor.id,
         patient_id=1,
         slot_time=get_future_slot(10)
+    )
+
+    appt = crud.create_appointment(db, data)
+
+    assert appt.id is not None
+    assert appt.doctor_id == doctor.id
+
+
+# ✅ TEST: timezone-aware input is accepted
+def test_create_appointment_accepts_timezone_aware_datetime(db):
+    doctor = create_test_doctor(db)
+
+    slot_time = datetime.now(timezone.utc) + timedelta(days=1, hours=2)
+    slot_time = slot_time.replace(minute=0, second=0, microsecond=0)
+
+    data = schemas.AppointmentCreate(
+        doctor_id=doctor.id,
+        patient_id=1,
+        slot_time=slot_time
     )
 
     appt = crud.create_appointment(db, data)
