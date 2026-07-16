@@ -93,6 +93,7 @@ python -m pytest tests/test_appointment.py -q
 - Deployment branch: `main`
 - Deployment provider: Render
 - Deployed app URL: [Add your deployed URL here]
+- CI/CD branch note: this branch is prepared for a pull request review and deployment workflow validation.
 
 ### Deployment Steps
 1. Create a free Render account and connect your GitHub repository.
