@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from .database import Base, engine, SessionLocal
 from .routers import appointments, doctors, patients
@@ -72,7 +72,33 @@ def seed_sample_doctors():
         db.close()
 
 
+def seed_sample_appointments():
+    db = SessionLocal()
+    try:
+        if db.query(models.Appointment).count() > 0:
+            return
+
+        base_time = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0) + timedelta(days=1)
+        sample_slots = [
+            base_time.replace(hour=10),
+            base_time.replace(hour=11),
+            base_time.replace(hour=14),
+        ]
+
+        for idx, slot_time in enumerate(sample_slots, start=1):
+            db.add(models.Appointment(
+                doctor_id=idx,
+                patient_id=idx,
+                slot_time=slot_time,
+            ))
+
+        db.commit()
+    finally:
+        db.close()
+
+
 seed_sample_doctors()
+seed_sample_appointments()
 
 app = FastAPI()
 
