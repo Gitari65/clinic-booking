@@ -4,6 +4,10 @@ from datetime import datetime, timedelta, timezone
 from . import models, schemas
 
 
+class BusinessLogicError(Exception):
+    pass
+
+
 def _normalize_datetime(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
@@ -22,25 +26,56 @@ def is_slot_taken(db: Session, doctor_id: int, slot_time: datetime):
     ).first()
 
 
+def create_doctor(db: Session, data: schemas.DoctorCreate):
+    if db.query(models.Doctor).filter(models.Doctor.email == data.email).first():
+        raise BusinessLogicError("Doctor with this email already exists")
+
+    doctor = models.Doctor(
+        full_name=data.full_name,
+        email=data.email,
+        work_start=data.work_start,
+        work_end=data.work_end,
+    )
+    db.add(doctor)
+    db.commit()
+    db.refresh(doctor)
+    return doctor
+
+
+def create_patient(db: Session, data: schemas.PatientCreate):
+    if db.query(models.Patient).filter(models.Patient.email == data.email).first():
+        raise BusinessLogicError("Patient with this email already exists")
+
+    patient = models.Patient(full_name=data.full_name, email=data.email)
+    db.add(patient)
+    db.commit()
+    db.refresh(patient)
+    return patient
+
+
 def create_appointment(db: Session, data: schemas.AppointmentCreate):
     slot_time = _normalize_datetime(data.slot_time)
     now = _utc_now()
 
     if slot_time < now:
-        raise ValueError("Cannot book past time")
+        raise BusinessLogicError("Cannot book past time")
 
     if slot_time < now + timedelta(hours=1):
-        raise ValueError("Booking must be at least 1 hour ahead")
+        raise BusinessLogicError("Booking must be at least 1 hour ahead")
 
     doctor = db.query(models.Doctor).filter(models.Doctor.id == data.doctor_id).first()
     if not doctor:
-        raise ValueError("Doctor not found")
+        raise BusinessLogicError("Doctor not found")
+
+    patient = db.query(models.Patient).filter(models.Patient.id == data.patient_id).first()
+    if not patient:
+        raise BusinessLogicError("Patient not found")
 
     if not (doctor.work_start <= slot_time.time() <= doctor.work_end):
-        raise ValueError("Outside doctor's working hours")
+        raise BusinessLogicError("Outside doctor's working hours")
 
     if is_slot_taken(db, data.doctor_id, slot_time):
-        raise ValueError("Slot already taken")
+        raise BusinessLogicError("Slot already taken")
 
     appointment = models.Appointment(
         doctor_id=data.doctor_id,
@@ -57,10 +92,10 @@ def create_appointment(db: Session, data: schemas.AppointmentCreate):
 def cancel_appointment(db: Session, appointment_id: int, reason: str):
     appt = db.query(models.Appointment).filter(models.Appointment.id == appointment_id).first()
     if not appt:
-        raise ValueError("Appointment not found")
+        raise BusinessLogicError("Appointment not found")
 
     if appt.cancelled:
-        raise ValueError("Already cancelled")
+        raise BusinessLogicError("Already cancelled")
 
     appt.cancelled = True
     appt.cancel_reason = reason
@@ -73,26 +108,26 @@ def cancel_appointment(db: Session, appointment_id: int, reason: str):
 def reschedule_appointment(db: Session, appointment_id: int, new_slot_time: datetime):
     appt = db.query(models.Appointment).filter(models.Appointment.id == appointment_id).first()
     if not appt:
-        raise ValueError("Appointment not found")
+        raise BusinessLogicError("Appointment not found")
 
     if appt.cancelled:
-        raise ValueError("Cannot reschedule cancelled appointment")
+        raise BusinessLogicError("Cannot reschedule cancelled appointment")
 
     normalized_new_slot_time = _normalize_datetime(new_slot_time)
     now = _utc_now()
 
     if normalized_new_slot_time < now:
-        raise ValueError("Cannot reschedule to a past time")
+        raise BusinessLogicError("Cannot reschedule to a past time")
 
     doctor = db.query(models.Doctor).filter(models.Doctor.id == appt.doctor_id).first()
     if not doctor:
-        raise ValueError("Doctor not found")
+        raise BusinessLogicError("Doctor not found")
 
     if not (doctor.work_start <= normalized_new_slot_time.time() <= doctor.work_end):
-        raise ValueError("New appointment time is outside of doctor's working hours")
+        raise BusinessLogicError("New appointment time is outside of doctor's working hours")
 
     if is_slot_taken(db, appt.doctor_id, normalized_new_slot_time):
-        raise ValueError("New slot already taken")
+        raise BusinessLogicError("New slot already taken")
 
     appt.slot_time = normalized_new_slot_time
     db.commit()

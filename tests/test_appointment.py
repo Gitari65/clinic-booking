@@ -36,6 +36,17 @@ def create_test_doctor(db):
     return doctor
 
 
+def create_test_patient(db):
+    patient = models.Patient(
+        full_name="Patient Test",
+        email="patient@example.com"
+    )
+    db.add(patient)
+    db.commit()
+    db.refresh(patient)
+    return patient
+
+
 def get_future_slot(hour: int = 10):
     slot = datetime.utcnow() + timedelta(days=1)
     return slot.replace(hour=hour, minute=0, second=0, microsecond=0)
@@ -44,10 +55,11 @@ def get_future_slot(hour: int = 10):
 # ✅ TEST: successful booking
 def test_create_appointment_success(db):
     doctor = create_test_doctor(db)
+    patient = create_test_patient(db)
 
     data = schemas.AppointmentCreate(
         doctor_id=doctor.id,
-        patient_id=1,
+        patient_id=patient.id,
         slot_time=get_future_slot(10)
     )
 
@@ -60,13 +72,14 @@ def test_create_appointment_success(db):
 # ✅ TEST: timezone-aware input is accepted
 def test_create_appointment_accepts_timezone_aware_datetime(db):
     doctor = create_test_doctor(db)
+    patient = create_test_patient(db)
 
     slot_time = datetime.now(timezone.utc) + timedelta(days=1, hours=2)
     slot_time = slot_time.replace(minute=0, second=0, microsecond=0)
 
     data = schemas.AppointmentCreate(
         doctor_id=doctor.id,
-        patient_id=1,
+        patient_id=patient.id,
         slot_time=slot_time
     )
 
@@ -79,12 +92,13 @@ def test_create_appointment_accepts_timezone_aware_datetime(db):
 # ❌ TEST: cannot book same slot twice
 def test_double_booking_fails(db):
     doctor = create_test_doctor(db)
+    patient = create_test_patient(db)
 
     slot = get_future_slot(10)
 
     data = schemas.AppointmentCreate(
         doctor_id=doctor.id,
-        patient_id=1,
+        patient_id=patient.id,
         slot_time=slot
     )
 
@@ -97,10 +111,11 @@ def test_double_booking_fails(db):
 # ❌ TEST: cannot book past
 def test_booking_in_past_fails(db):
     doctor = create_test_doctor(db)
+    patient = create_test_patient(db)
 
     data = schemas.AppointmentCreate(
         doctor_id=doctor.id,
-        patient_id=1,
+        patient_id=patient.id,
         slot_time=datetime.utcnow() - timedelta(hours=1)
     )
 
@@ -111,10 +126,11 @@ def test_booking_in_past_fails(db):
 # ❌ TEST: cancel appointment
 def test_cancel_appointment(db):
     doctor = create_test_doctor(db)
+    patient = create_test_patient(db)
 
     data = schemas.AppointmentCreate(
         doctor_id=doctor.id,
-        patient_id=1,
+        patient_id=patient.id,
         slot_time=get_future_slot(10)
     )
 
@@ -128,13 +144,14 @@ def test_cancel_appointment(db):
 # 🔁 TEST: reschedule
 def test_reschedule_appointment(db):
     doctor = create_test_doctor(db)
+    patient = create_test_patient(db)
 
     original_time = get_future_slot(10)
     new_time = get_future_slot(12)
 
     data = schemas.AppointmentCreate(
         doctor_id=doctor.id,
-        patient_id=1,
+        patient_id=patient.id,
         slot_time=original_time
     )
 

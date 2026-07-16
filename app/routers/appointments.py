@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from ..crud import BusinessLogicError
+
 from ..database import SessionLocal
 from .. import crud, schemas, models
 
@@ -15,7 +17,7 @@ def get_db():
         db.close()
 
 
-def _raise_business_error(exc: ValueError):
+def _raise_business_error(exc: BusinessLogicError):
     raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
@@ -24,7 +26,7 @@ def _raise_business_error(exc: ValueError):
 def book_appointment(data: schemas.AppointmentCreate, db: Session = Depends(get_db)):
     try:
         return crud.create_appointment(db, data)
-    except ValueError as exc:
+    except BusinessLogicError as exc:
         _raise_business_error(exc)
 
 
@@ -33,7 +35,7 @@ def book_appointment(data: schemas.AppointmentCreate, db: Session = Depends(get_
 def cancel_appointment(appointment_id: int, data: schemas.AppointmentCancel, db: Session = Depends(get_db)):
     try:
         return crud.cancel_appointment(db, appointment_id, data.reason)
-    except ValueError as exc:
+    except BusinessLogicError as exc:
         _raise_business_error(exc)
 
 
@@ -42,7 +44,7 @@ def cancel_appointment(appointment_id: int, data: schemas.AppointmentCancel, db:
 def reschedule_appointment(appointment_id: int, data: schemas.AppointmentReschedule, db: Session = Depends(get_db)):
     try:
         return crud.reschedule_appointment(db, appointment_id, data.new_slot_time)
-    except ValueError as exc:
+    except BusinessLogicError as exc:
         _raise_business_error(exc)
 
 

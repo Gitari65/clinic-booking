@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import datetime, date
+from datetime import date
 
 from ..database import SessionLocal
-from .. import models
+from .. import crud, models, schemas
 from ..utils import generate_slots
 
 router = APIRouter(prefix="/doctors", tags=["Doctors"])
@@ -15,6 +15,14 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+@router.post("/", status_code=201)
+def create_doctor(data: schemas.DoctorCreate, db: Session = Depends(get_db)):
+    try:
+        return crud.create_doctor(db, data)
+    except crud.BusinessLogicError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/{doctor_id}/availability")

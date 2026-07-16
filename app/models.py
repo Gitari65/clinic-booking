@@ -15,6 +15,14 @@ class Doctor(Base):
     appointments = relationship("Appointment", back_populates="doctor")
 
 
+class Patient(Base):
+    __tablename__ = "patients"
+
+    id = Column(Integer, primary_key=True, index=True)
+    full_name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+
+
 class Appointment(Base):
     __tablename__ = "appointments"
 
