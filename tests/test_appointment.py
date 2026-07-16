@@ -106,6 +106,49 @@ def test_cancel_appointment(db):
     assert cancelled.cancelled is True
 
 
+# 🎯 BONUS: upcoming patient appointments are returned in order
+def test_patient_upcoming_appointments_are_sorted(db):
+    doctor = create_test_doctor(db)
+
+    earlier = datetime.utcnow() + timedelta(days=1, hours=2)
+    later = datetime.utcnow() + timedelta(days=1, hours=5)
+
+    first = models.Appointment(
+        doctor_id=doctor.id,
+        patient_id=1,
+        slot_time=earlier
+    )
+    second = models.Appointment(
+        doctor_id=doctor.id,
+        patient_id=1,
+        slot_time=later
+    )
+
+    db.add_all([first, second])
+    db.commit()
+
+    appointments = db.query(models.Appointment).filter(
+        models.Appointment.patient_id == 1,
+        models.Appointment.cancelled == False
+    ).order_by(models.Appointment.slot_time).all()
+
+    assert [appt.slot_time for appt in appointments] == sorted([appt.slot_time for appt in appointments])
+
+
+# ⏰ BONUS: cannot book within 1 hour of now
+def test_booking_within_one_hour_fails(db):
+    doctor = create_test_doctor(db)
+
+    data = schemas.AppointmentCreate(
+        doctor_id=doctor.id,
+        patient_id=1,
+        slot_time=datetime.utcnow() + timedelta(minutes=30)
+    )
+
+    with pytest.raises(ValueError):
+        crud.create_appointment(db, data)
+
+
 # 🔁 TEST: reschedule
 def test_reschedule_appointment(db):
     doctor = create_test_doctor(db)
