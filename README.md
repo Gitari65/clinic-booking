@@ -92,7 +92,10 @@ python -m pytest tests/test_appointment.py -q
 ## Deployment & CI/CD
 - Deployment branch: `main`
 - Deployment provider: Render
-- Deployed app URL: [Add your deployed URL here]
+- Public app URL: [Add your live Render URL here]
+- Deployment trigger: merges into `main` trigger the deployment workflow
+- CI/CD pipeline summary: GitHub Actions runs the test suite on pull requests and deploys the app after a merge into `main`
+- CI/CD branch note: this branch is prepared for a pull request review and deployment workflow validation.
 
 ### Deployment Steps
 1. Create a free Render account and connect your GitHub repository.
