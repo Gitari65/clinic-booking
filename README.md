@@ -132,18 +132,16 @@ This helps catch errors early and keeps the code stable. Even though the project
 ## Section 4 Reflection
 1. What did you use AI for?
 
-I used AI to guide me while building the API, checking my data models, thinking of edge cases, and improving my tests.
+I used AI to help me think through the API design, test edge cases, improve my README content, and check my overall structure while building the project.
 
 2. Example where AI improved your work
 
-AI suggested testing cases like double-booking and scheduling in the past when I asked:
-“what edge cases should I test for an appointment system.”
-That helped me make my tests more complete.
+One strong example was when I asked AI: “What edge cases should I test for an appointment booking system?” It suggested cases like double-booking, past-time booking, and invalid doctor hours, which helped me build stronger tests.
 
 3. Example where AI was wrong or incomplete
 
-AI gave me a test setup that didn’t reset the database properly. I noticed because tests gave inconsistent results, so I fixed it using proper pytest fixtures.
+One AI suggestion gave me a test setup that did not reset the database properly. I caught this because the tests started behaving inconsistently, so I fixed the setup using better pytest fixtures and a more reliable test structure.
 
 4. Two decisions without AI
 
-I decided the project structure and wrote the appointment conflict logic myself. I trusted my approach to keep things simple, clear, and correct
+I chose the project structure myself and wrote the appointment conflict logic on my own. I trusted my own judgment because I understood the business rules clearly and wanted to keep the implementation simple, practical, and easy to follow.
