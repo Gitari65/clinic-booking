@@ -37,6 +37,27 @@ It supports:
    uvicorn app.main:app --reload
    ```
 
+## System Design
+Before implementation, I planned the system around a small REST API with two main entities: doctors and appointments.
+
+### Models and Components
+- Doctor: represents a clinic doctor with an ID, name, email, and working hours.
+- Appointment: represents a booked patient visit with a doctor, patient, scheduled time, and cancellation status.
+- CRUD layer: handles the business rules for creating, cancelling, and rescheduling appointments.
+- Router layer: exposes the API endpoints for appointments and doctor availability.
+- Database layer: uses SQLAlchemy with SQLite for a simple local setup and easy testing.
+
+### Key Design Decisions
+- I chose FastAPI because it is lightweight, easy to read, and well suited for building REST APIs quickly.
+- I used SQLAlchemy ORM to keep database interaction clear and structured.
+- I kept the app simple by separating business logic, request validation, and router handling into different modules.
+- I used SQLite for the initial version because it is easy to run locally and does not require extra setup.
+
+### Trade-offs Considered
+- SQLite was chosen for simplicity, but it is not ideal for large-scale production traffic.
+- The current design focuses on a small clinic workflow rather than a full multi-tenant booking platform.
+- Validation rules are implemented in the backend to prevent invalid or conflicting bookings.
+
 ## API Endpoints
 
 ### Appointments
@@ -130,18 +151,21 @@ In Render, open your service and copy the Deploy Hook URL. Then add it as the Gi
 This helps catch errors early and keeps the code stable. Even though the project is small, adding CI/CD makes it more reliable and closer to real-world development practices.
 
 ## Section 4 Reflection
-1. What did you use AI for?
+1. What I used AI for
+I used AI as a helper while building the API, checking my data models, and improving my tests.
+It also helped me think about edge cases I might miss.
 
-I used AI to help me think through the API design, test edge cases, improve my README content, and check my overall structure while building the project.
+2. Example where AI helped
+AI suggested testing things like double-booking and booking in the past.
+I asked: “what edge cases should I test for an appointment system?”
+That made my tests stronger and more realistic.
 
-2. Example where AI improved your work
+3. Example where AI was wrong
+AI gave me a test setup that didn’t reset the database properly.
+I noticed because tests gave inconsistent results.
+I fixed it by using proper pytest fixtures.
 
-One strong example was when I asked AI: “What edge cases should I test for an appointment booking system?” It suggested cases like double-booking, past-time booking, and invalid doctor hours, which helped me build stronger tests.
-
-3. Example where AI was wrong or incomplete
-
-One AI suggestion gave me a test setup that did not reset the database properly. I caught this because the tests started behaving inconsistently, so I fixed the setup using better pytest fixtures and a more reliable test structure.
-
-4. Two decisions without AI
-
-I chose the project structure myself and wrote the appointment conflict logic on my own. I trusted my own judgment because I understood the business rules clearly and wanted to keep the implementation simple, practical, and easy to follow.
+4. Decisions I made without AI
+I chose the project structure myself to keep things clean and simple.
+I also wrote the appointment conflict logic on my own.
+I trusted my judgment because I wanted the logic to be clear and easy to understand.
