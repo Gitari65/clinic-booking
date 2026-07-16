@@ -1,49 +1,28 @@
-from sqlite3 import Time
-
-from sqlalchemy import Column,String,Integer,DateTime,ForeignKey,Enum,UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
-from app.database import Base
-
-import enum 
-import uuid
-from datetime import datetime
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
+from sqlalchemy.types import Time
+from sqlalchemy.orm import relationship
+from .database import Base
 
 class Doctor(Base):
     __tablename__ = "doctors"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,index=True)
+
+    id = Column(Integer, primary_key=True, index=True)
     full_name = Column(String, nullable=False)
-    email = Column(String, unique=True, nullable=False)
-    work_start=Column(Time, nullable=False)
-    work_end=Column(Time, nullable=False)
+    email = Column(String, nullable=False)
+    work_start = Column(Time, nullable=False)
+    work_end = Column(Time, nullable=False)
 
     appointments = relationship("Appointment", back_populates="doctor")
 
-    class Patient(Base):
-        __tablename__ = "patients"
-        id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,index=True)
-        full_name = Column(String, nullable=False)
-        email = Column(String, unique=True, nullable=False)
 
-        appointments = relationship("Appointment", back_populates="patient")
+class Appointment(Base):
+    __tablename__ = "appointments"
 
-    class AppointmentStatus(str, enum.Enum):
-        BOOKED = "booked"
-        CANCELLED = "cancelled"
-        COMPLETED = "completed"
-   
+    id = Column(Integer, primary_key=True, index=True)
+    doctor_id = Column(Integer, ForeignKey("doctors.id"))
+    patient_id = Column(Integer, nullable=False)
+    slot_time = Column(DateTime, nullable=False)
+    cancelled = Column(Boolean, default=False)
+    cancel_reason = Column(String, nullable=True)
 
-    class Appointment(Base):
-        __tablename__ = "appointments"
-        id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,index=True)
-        doctor_id = Column(UUID(as_uuid=True), ForeignKey("doctors.id"), nullable=False)
-        patient_id = Column(UUID(as_uuid=True), ForeignKey("patients.id"), nullable=False)
-        slot_time = Column(DateTime, nullable=False)
-        status = Column(Enum(AppointmentStatus), default=AppointmentStatus.BOOKED, nullable=False)
-        created_at = Column(DateTime, default=datetime.utcnow)
-
-        __table_args__ = (
-            UniqueConstraint('doctor_id', 'slot_time', name='unique_doctor_slot'),
-        )
-
-
-
+    doctor = relationship("Doctor", back_populates="appointments")

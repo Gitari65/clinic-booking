@@ -1,80 +1,85 @@
-from sqlalchemy.orm import session
-from . import models
-from datetime import datetime
+from sqlalchemy.orm import Session
+from datetime import datetime, timedelta
+
+from . import models, schemas
 
 
-def create_appointment(db: session.Session, doctor_id: int, patient_id: int, slot_time: datetime):
+def is_slot_taken(db: Session, doctor_id: int, slot_time: datetime):
+    return db.query(models.Appointment).filter(
+        models.Appointment.doctor_id == doctor_id,
+        models.Appointment.slot_time == slot_time,
+        models.Appointment.cancelled == False
+    ).first()
 
-    #1 validate not in past
-    if slot_time < datetime.now():
-        raise ValueError("Cannot book an appointment in the past.")
-    
-    #2 validate doctor exists
-    doctor = db.query(models.Doctor).filter(models.Doctor.id == doctor_id).first()
+
+def create_appointment(db: Session, data: schemas.AppointmentCreate):
+    if data.slot_time < datetime.utcnow():
+        raise ValueError("Cannot book past time")
+
+    if data.slot_time < datetime.utcnow() + timedelta(hours=1):
+        raise ValueError("Booking must be at least 1 hour ahead")
+
+    doctor = db.query(models.Doctor).filter(models.Doctor.id == data.doctor_id).first()
     if not doctor:
-        raise ValueError("Doctor not found.")
-    
-    #3 validate working hours
-    if not (doctor.work_start <= slot_time.time() <= doctor.work_end):
-        raise ValueError("Appointment time is outside of doctor's working hours.")
-    
-    #4 Create appointment(DB constarint will handle double booking)
+        raise ValueError("Doctor not found")
 
-    appointment = models.Appointment(doctor_id=doctor_id, patient_id=patient_id, slot_time=slot_time)
+    if not (doctor.work_start <= data.slot_time.time() <= doctor.work_end):
+        raise ValueError("Outside doctor's working hours")
+
+    if is_slot_taken(db, data.doctor_id, data.slot_time):
+        raise ValueError("Slot already taken")
+
+    appointment = models.Appointment(
+        doctor_id=data.doctor_id,
+        patient_id=data.patient_id,
+        slot_time=data.slot_time
+    )
     db.add(appointment)
-    try:
-        db.commit()
-        db.refresh(appointment)
-    except Exception as e:
-        db.rollback()
-        raise ValueError("Slot already booked for this doctor.") from e
-    
+    db.commit()
+    db.refresh(appointment)
+
     return appointment
 
-def cancel_appointment(db: session.Session, appointment_id: int, reason: str):
+
+def cancel_appointment(db: Session, appointment_id: int, reason: str):
     appt = db.query(models.Appointment).filter(models.Appointment.id == appointment_id).first()
     if not appt:
-        raise ValueError("Appointment not found.")
-    
-    if appt.status != models.AppointmentStatus.BOOKED:
-        raise ValueError("Only booked appointments can be cancelled.")
-    
-    appt.status = models.AppointmentStatus.CANCELLED
+        raise ValueError("Appointment not found")
+
+    if appt.cancelled:
+        raise ValueError("Already cancelled")
+
+    appt.cancelled = True
+    appt.cancel_reason = reason
     db.commit()
     db.refresh(appt)
-    
+
     return appt
 
-def reschedule_appointment(db: session.Session, appointment_id: int, new_slot_time: datetime):
+
+def reschedule_appointment(db: Session, appointment_id: int, new_slot_time: datetime):
     appt = db.query(models.Appointment).filter(models.Appointment.id == appointment_id).first()
     if not appt:
-        raise ValueError("Appointment not found.")
-    
-    if appt.status != models.AppointmentStatus.BOOKED:
-        raise ValueError("Only booked appointments can be rescheduled.")
-    
-    # Validate new slot time
-    if new_slot_time < datetime.now():
-        raise ValueError("Cannot reschedule to a past time.")
-    
+        raise ValueError("Appointment not found")
+
+    if appt.cancelled:
+        raise ValueError("Cannot reschedule cancelled appointment")
+
+    if new_slot_time < datetime.utcnow():
+        raise ValueError("Cannot reschedule to a past time")
+
     doctor = db.query(models.Doctor).filter(models.Doctor.id == appt.doctor_id).first()
     if not doctor:
-        raise ValueError("Doctor not found.")
-    
+        raise ValueError("Doctor not found")
+
     if not (doctor.work_start <= new_slot_time.time() <= doctor.work_end):
-        raise ValueError("New appointment time is outside of doctor's working hours.")
-    
-    # Update the appointment
+        raise ValueError("New appointment time is outside of doctor's working hours")
+
+    if is_slot_taken(db, appt.doctor_id, new_slot_time):
+        raise ValueError("New slot already taken")
+
     appt.slot_time = new_slot_time
-    try:
-        db.commit()
-        db.refresh(appt)
-    except Exception as e:
-        db.rollback()
-        raise ValueError("New slot unavailable for this doctor.") from e
-    
+    db.commit()
+    db.refresh(appt)
+
     return appt
-
-
-    
-

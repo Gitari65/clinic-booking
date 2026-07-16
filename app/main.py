@@ -1,8 +1,10 @@
-from fastapi import FastAPI 
+from fastapi import FastAPI
+from .database import Base, engine
+from .routers import appointments, doctors
 
-app=FastAPI()
+Base.metadata.create_all(bind=engine)
 
-@app.get("/")
+app = FastAPI()
 
-def home():
-    return {"message": "clinic Bookings API is running"}
+app.include_router(appointments.router)
+app.include_router(doctors.router)

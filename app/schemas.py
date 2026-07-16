@@ -1,16 +1,16 @@
 from pydantic import BaseModel
-from datetime import date, time, datetime
+from datetime import datetime
 from typing import Optional
 
 class AppointmentCreate(BaseModel):
-    doctor_id: str
-    patient_id: str
+    doctor_id: int
+    patient_id: int
     slot_time: datetime
 
+
 class AppointmentCancel(BaseModel):
-        reason: str
+    reason: str
+
 
 class AppointmentReschedule(BaseModel):
-            new_slot_time: datetime 
-            
-
+    new_slot_time: datetime
