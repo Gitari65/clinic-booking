@@ -78,6 +78,11 @@ Before implementation, I planned the system around a small REST API with two mai
 - `GET /doctors/{doctor_id}/availability?query_date=YYYY-MM-DD`
   - Returns available slots for the given doctor on that date
 
+### Bonus
+- `GET /patients/{patient_id}/appointments`
+  - Returns upcoming appointments for a patient, sorted by date
+  - Prevents new bookings from being made within 1 hour of the current time
+
 ## Models
 
 ### Doctor
